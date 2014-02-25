@@ -1,0 +1,26 @@
+{
+    "widget":{
+        "name": "widget.name",
+        "description": "widget.description",
+        "short_description": "widget.short_description",
+        "code": "updcontact",
+        "secret_key": "0db7efe9d1424425afd768a72f36b5ec40d5cb5fb64dd967c5e81c2bce718e24",
+        "version": "0.9.95",
+        "locale":[
+                "ru",
+                "en"
+                ],
+        "installation": true
+    },
+    "locations":[
+        "ccard",
+        "clist"
+    ],
+    "settings":{
+        "phpendpoint":{
+            "name": "settings.phpendpoint",
+            "type": "text",
+            "required": true
+        }
+    }
+}

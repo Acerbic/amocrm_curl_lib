@@ -1,0 +1,19 @@
+{
+    "widget":{
+        "name": "widget.name",
+        "description": "widget.description",
+        "short_description": "widget.short_description",
+        "code": "newwid",
+        "secret_key": "78be2ec993704d47935a7142d0b43ba604c4f5c0811c8d4484a5687519060665",
+        "version": "1.0.5",
+        "locale":[
+                "ru"
+                ],
+        "installation": true
+    },
+    "locations":[
+        "lcard"
+    ],
+    "settings":{
+    }
+}
