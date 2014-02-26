@@ -123,16 +123,12 @@ function amo_curl_post($url, $postData, $subdomain=AMOCRM_SUBDOMAIN) {
 /**
  * Выполняет запрос GET по REST API через CURL и возвращает массив полученных данных.
  * @param  string $url - (!) относительный адрес для запроса.
- * @param  string $dataType - имя запрашиваемых данных ('leads', 'contacts'...) для использования многостраничного 
- * запроса (limit_rows и limit_offset).
- * Если null, то многостраничный запрос не используется.
- * @param  array $args - данные для отправки GET. Если указан аргумент 'limit_rows', то он обрабатывается без ограничения в 500 элементов, 
- * описаного в API. Аргумент $dataType не должен быть null для этого.
+ * @param  array $args - данные для отправки GET.
  * @param  long $modifiedSince - метка времени для передачи в виде параметра modified-since.
  * @param  string $subdomain - субдомен (аккаунт amoCRM).
  * @return часть ['response'] массива присланного в ответ на запрос или null, если нет данных. В случае ошибки выполнение прерывается.
  */
-function amo_curl_get($url, $dataType=null, $args=null, $modifiedSince=null, $subdomain=AMOCRM_SUBDOMAIN) {
+function amo_curl_get($url, $args=null, $modifiedSince=null, $subdomain=AMOCRM_SUBDOMAIN) {
 	global $cookieName;
 
 	if (empty($cookieName)) {
@@ -152,88 +148,73 @@ function amo_curl_get($url, $dataType=null, $args=null, $modifiedSince=null, $su
 		$sDate = $dateTime->format("D, d M Y H:i:s");
 		curl_setopt($curl, CURLOPT_HTTPHEADER, array("if-modified-since: $sDate"));
 	}
-	curl_setopt($curl,CURLOPT_COOKIEFILE, $cookieName); #PHP>5.3.6 dirname(__FILE__) -> __DIR__
-	curl_setopt($curl,CURLOPT_COOKIEJAR, $cookieName); #PHP>5.3.6 dirname(__FILE__) -> __DIR__
+	curl_setopt($curl,CURLOPT_COOKIEFILE, $cookieName); 
+	curl_setopt($curl,CURLOPT_COOKIEJAR, $cookieName); 
 	curl_setopt($curl,CURLOPT_SSL_VERIFYPEER,0);
 	curl_setopt($curl,CURLOPT_SSL_VERIFYHOST,0);
  
 
 	$retry_counter = 3; $completion_flag = false;
+	if (is_null($args)) $args = array();
+
 	while ($retry_counter && !$completion_flag) {
 
-				if (is_null($args)) $args = array();
-				$offset = 0; $step = 400; // по умолчанию
-				if (isset($args['limit_offset']) && $args['limit_offset']>=0)
-					$offset = (int) $args['limit_offset'];
-				$limit_rows = $args['limit_rows'];
+		$completion_flag = true; // надежда...
 
-				$results = array( $dataType => array());
-				$completion_flag = true; // надежда...
-				do {
-					if (!is_null($dataType)) {
-						// echo "*limit_rows == $limit_rows, *step == $step";
-						$args['limit_rows'] = ($limit_rows == 0 || $limit_rows == null)? $step : min($step, $limit_rows);
-						$args['limit_offset'] = $offset;
-					}
-					$link='https://'.$subdomain.'.amocrm.ru'.$url.'?'.http_build_query($args);
-					log_event("query is ".$link);
-					curl_setopt($curl,CURLOPT_URL,$link);
+		$link='https://'.$subdomain.'.amocrm.ru'.$url.'?'.http_build_query($args);
+		curl_setopt($curl,CURLOPT_URL,$link);
 
-					$out=curl_exec($curl); #Инициируем запрос к API и сохраняем ответ в переменную
-					$code=curl_getinfo($curl,CURLINFO_HTTP_CODE);
+		$out=curl_exec($curl); #Инициируем запрос к API и сохраняем ответ в переменную
+		$code=curl_getinfo($curl,CURLINFO_HTTP_CODE);
 
-					try {
-						CheckCurlResponse($code);
-					}
-					catch(Exception $E)	{
-						$err_mess = 'Ошибка: '.$E->getMessage().PHP_EOL.'Код ошибки: '.$E->getCode();
-						log_event($err_mess.".... retrying.", "ERROR");
-						$completion_flag = false; // .. надежда не оправдалась
-						$retry_counter--;
-						sleep(1);
-						break; // while (count($chunk[$dataType])==$step)
-					}
+		try {
+			CheckCurlResponse($code);
+		}
+		catch(Exception $E)	{
+			$err_mess = 'Ошибка: '.$E->getMessage().PHP_EOL.'Код ошибки: '.$E->getCode();
+			log_event($err_mess.".... retrying.", "DEBUG");
+			$completion_flag = false; // .. надежда не оправдалась
+			$retry_counter--;
+			sleep(1);
+			continue; //while ($retry_counter && !$completion_flag) 
+		}
 
-					$response=json_decode($out,true);
-
-					$chunk = $response['response'];
-
-					// если тип данных не указан, то возвращаем первый результат.
-					if (is_null($dataType))
-						return $chunk;
-
-					// log_event("Получены элементы $dataType ".$offset." .. ".($offset+count($chunk[$dataType])),"DEBUG");
-					if (!is_null($chunk)) {
-						if (isset($limit_rows))
-							$limit_rows -= count($chunk[$dataType]);
-						$results[$dataType] = array_merge($results[$dataType], $chunk[$dataType]);
-						$results['server_time'] = $chunk['server_time'];
-					}
-
-					// log_event("got ".count($chunk[$dataType])." from ".$offset);
-					$offset += $step;
-				} while (count($chunk[$dataType])==$step && $limit_rows>0);
-				// log_event("Download cycle complete, completion flag is ".($completion_flag? "set": "dropped"),"DEBUG");
+		$response=json_decode($out,true);
+		$chunk = $response['response'];
 	}
 
 	curl_close($curl);
 	if (!$completion_flag) {
 		die(); // закончить выполнение, т.к. в cURL произошла неисправимая ошибка
 	}
-	return $results;
+	return $chunk;
 }
 
-function amo_curl_get_mass($url, $dataType, $args=null, $prevdata=null, $modifiedSince=null, $processor=null, $subdomain=AMOCRM_SUBDOMAIN) {
+/**
+ * Массовое получение данных.
+ * @param  string $url 		- (!) относительный адрес для запроса.
+ * @param  string $dataType - имя запрашиваемых данных ('leads', 'contacts'...) для использования многостраничного запроса (limit_rows и limit_offset).
+ * @param  array $args 		- данные для отправки GET. Если указан аргумент 'limit_rows', то он обрабатывается без ограничения в 500 элементов,  описаного в API. 
+ * @param  int $modifiedSince - ограничение по дате (по времени amoCRM)
+ * @param  func $processor  - callback для обработки единичного элемента, если указан - то в конечный результат включается результат обработки, а не исходный элемент
+ * @param  string $subdomain - иной аккаунт, чем указаный в конфиге
+ * @return array            - {data => {id => {element}...}, 'count' => TOTAL}, если существует $element['id'], иначе
+ *                            {data => [{element}], 'count' => TOTAL}
+ * значение TOTAL - подсчитанное число элементов, полученных в ответ из amoCRM - МОЖЕТ БЫТЬ БОЛЬШЕ, чем реальное число элементов в data
+ */
+function amo_curl_get_mass($url, $dataType, $args=null, $modifiedSince=null, $processor=null, $subdomain=AMOCRM_SUBDOMAIN) {
 	global $params;
 
 	$args = is_null($args)? array() : $args;
 	$total_items = isset($args['limit_rows'])? $args['limit_rows']: -1;
 	$original_offset = isset($args['limit_offset'])? $args['limit_offset']: 0;
 
-	$result_data = empty($prevdata)? array(): $prevdata;
+	$result_data = array();
 
 	$args['limit_rows'] = ($total_items>0)? min($total_items, 400) : 400;
 	$args['limit_offset'] = $original_offset;
+
+	$actual_counter = 0;
 
 	do {
 		$batch = amo_curl_get($url, $dataType, $args, $modifiedSince, $subdomain);
@@ -246,10 +227,16 @@ function amo_curl_get_mass($url, $dataType, $args=null, $prevdata=null, $modifie
 				$result_data[] = $processed_element;
 		}
 
+		$actual_counter += count($batch[$dataType]);
 		$args['limit_offset'] += 400;
-	} while (count($batch['contacts']) == 400);
+	} while (count($batch[$dataType]) == 400);
 
-	return $result_data;
+	// $result_data['count'] = $actual_counter;
+	return array('data' => $result_data, 'count' => $actual_counter);
+}
+
+function amo_curl_post_mass() {
+	
 }
 
 function cookie_crusher() {
