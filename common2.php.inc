@@ -1,6 +1,10 @@
 <?php
-require_once "config.php.inc";
-require_once "logger.php.inc";
+/**
+ * @file
+ * Библиотека обёрток для работы с amoCRM API
+ *  require_once "config.php.inc";
+ *  require_once "logger.php.inc";
+ */
 
 $cookieName = null; // имя файла cookie для данного процесса. 
 /**
@@ -111,9 +115,9 @@ function amo_curl_post($url, $postData, $subdomain=AMOCRM_SUBDOMAIN) {
 		CheckCurlResponse($code);
 	}
 	catch(Exception $E)	{
-		$err_mess = 'Ошибка: '.$E->getMessage().PHP_EOL.'Код ошибки: '.$E->getCode();
+		$err_mess = 'amo_curl_post ошибка: '.$E->getMessage().PHP_EOL.'Код ошибки: '.$E->getCode();
 		log_event($err_mess, "ERROR");
-		die($err_mess);
+		throw $err_mess;
 	}
 
 	$Response=json_decode($out,true);
@@ -129,8 +133,7 @@ function amo_curl_post($url, $postData, $subdomain=AMOCRM_SUBDOMAIN) {
  * @return часть ['response'] массива присланного в ответ на запрос или null, если нет данных. В случае ошибки выполнение прерывается.
  */
 function amo_curl_get($url, $args=null, $modifiedSince=null, $subdomain=AMOCRM_SUBDOMAIN) {
-	global $cookieName;
-
+	global $cookieName, $server_time;
 	if (empty($cookieName)) {
 		$cookieName = tempnam (__DIR__, "ckie_");
 		register_shutdown_function(cookie_crusher);
@@ -161,7 +164,7 @@ function amo_curl_get($url, $args=null, $modifiedSince=null, $subdomain=AMOCRM_S
 
 		$completion_flag = true; // надежда...
 
-		$link='https://'.$subdomain.'.amocrm.ru'.$url.'?'.http_build_query($args);
+		$link = 'https://'.$subdomain.'.amocrm.ru'.$url.'?'.http_build_query($args);
 		curl_setopt($curl,CURLOPT_URL,$link);
 
 		$out=curl_exec($curl); #Инициируем запрос к API и сохраняем ответ в переменную
@@ -181,11 +184,14 @@ function amo_curl_get($url, $args=null, $modifiedSince=null, $subdomain=AMOCRM_S
 
 		$response=json_decode($out,true);
 		$chunk = $response['response'];
+		if (!empty ($chunk['server_time']) )
+			$server_time = $chunk['server_time'];
 	}
 
 	curl_close($curl);
 	if (!$completion_flag) {
-		die(); // закончить выполнение, т.к. в cURL произошла неисправимая ошибка
+		throw "Unrecoverable error during amo_curl_get";
+		// die(); // закончить выполнение, т.к. в cURL произошла неисправимая ошибка
 	}
 	return $chunk;
 }
@@ -203,36 +209,40 @@ function amo_curl_get($url, $args=null, $modifiedSince=null, $subdomain=AMOCRM_S
  * значение TOTAL - подсчитанное число элементов, полученных в ответ из amoCRM - МОЖЕТ БЫТЬ БОЛЬШЕ, чем реальное число элементов в data
  */
 function amo_curl_get_mass($url, $dataType, $args=null, $modifiedSince=null, $processor=null, $subdomain=AMOCRM_SUBDOMAIN) {
-	global $params;
+	global $server_time;
 
 	$args = is_null($args)? array() : $args;
-	$total_items = isset($args['limit_rows'])? $args['limit_rows']: -1;
-	$original_offset = isset($args['limit_offset'])? $args['limit_offset']: 0;
+	$nItemsToGet = $args['limit_rows'];
+	$limitRows = $nItemsToGet && $nItemsToGet>0;
+	$originalOffset = isset($args['limit_offset'])? $args['limit_offset']: 0;
 
-	$result_data = array();
-
-	$args['limit_rows'] = ($total_items>0)? min($total_items, 400) : 400;
-	$args['limit_offset'] = $original_offset;
-
-	$actual_counter = 0;
+	$resultData = array();
+	$args['limit_offset'] = $originalOffset;
+	$actualCounter = 0;
 
 	do {
-		$batch = amo_curl_get($url, $dataType, $args, $modifiedSince, $subdomain);
+		$args['limit_rows'] = ($limitRows)? min($nItemsToGet, 400) : 400;
+		$batch = amo_curl_get($url, $args, $modifiedSince, $subdomain);
 
-		foreach ($batch[$dataType] as $element) {
-			$processed_element = is_null($processor)? $element : $processor($element);
-			if (isset($element['id']))
-				$result_data[$element['id']] = $processed_element;
-			else
-				$result_data[] = $processed_element;
+		if ($batch != null) {
+			foreach ($batch[$dataType] as $element) {
+				$processed_element = is_null($processor)? $element : $processor($element);
+				if (isset($element['id']))
+					$resultData[$element['id']] = $processed_element;
+				else
+					$resultData[] = $processed_element;
+			}
+			$elementsRecieved = count($batch[$dataType]);
+		} else {
+			$elementsRecieved = 0;
 		}
 
-		$actual_counter += count($batch[$dataType]);
+		$actualCounter += $elementsRecieved;
+		$nItemsToGet -= $elementsRecieved;
 		$args['limit_offset'] += 400;
-	} while (count($batch[$dataType]) == 400);
+	} while ($elementsRecieved == 400 && !($limitRows && $nItemsToGet<=0));
 
-	// $result_data['count'] = $actual_counter;
-	return array('data' => $result_data, 'count' => $actual_counter);
+	return array('data' => $resultData, 'count' => $actualCounter, 'server_time' => $batch['server_time']);
 }
 
 function amo_curl_post_mass() {

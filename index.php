@@ -8,7 +8,7 @@
 $start = microtime(true);
 
 require_once "config.php.inc";
-require_once "common.php.inc";
+require_once "common2.php.inc";
 require_once "logger.php.inc";
 // require_once "amocrm_fanil.php.inc";
 require_once "Krumo/class.krumo.php";
