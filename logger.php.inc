@@ -1,7 +1,7 @@
 <?php
 /**
  * @file
- * Функции ведения лога. 
+ * Функции ведения лога.
  * Необходимо использовать "require_once" при подключении этого файла
  */
 
@@ -26,17 +26,17 @@ function init_logger($logname, $only_file=FALSE) {
 	$log_only_file = $only_file;
 
 	if (file_exists($logfile) && (filesize($logfile) > MAX_LOG_SIZE)) {
-		$tmpfile = tempnam(__DIF__,'_'); 
-		$logHandle = fopen($logfile, 'r'); 
-		$tmpHandle = fopen($tmpfile, 'w'); 
+		$tmpfile = tempnam(__DIF__,'_');
+		$logHandle = fopen($logfile, 'r');
+		$tmpHandle = fopen($tmpfile, 'w');
 		if (!$tmpHandle || !$logHandle)
 			return false; //какая-то ошибка. :(
 
 		// обрезаем до половины максимальной, чтобы не вызывать слишком часто
-		fseek($logHandle, - MAX_LOG_SIZE * 0.5, SEEK_END); 
+		fseek($logHandle, - MAX_LOG_SIZE * 0.5, SEEK_END);
 
 		stream_copy_to_stream($logHandle, $tmpHandle);
-		fclose($logHandle); 
+		fclose($logHandle);
 		fclose($tmpHandle);
 
 		rename($tmpfile, $logfile);
@@ -44,9 +44,9 @@ function init_logger($logname, $only_file=FALSE) {
 		chmod($logfile, 0666);
 	}
 
-	clearstatcache(TRUE); 
+	clearstatcache(TRUE);
 
-	$logfile_init_size = (int)filesize('./'.$logfile);
+	// $logfile_init_size = (int)filesize('./'.$logfile);
 
 	return true;
 }
@@ -56,7 +56,7 @@ function init_logger($logname, $only_file=FALSE) {
  */
 function rollback_logger() {
 	global $logfile, $logfile_init_size;
-	clearstatcache(TRUE); 
+	clearstatcache(TRUE);
 	@$newsize = (int) filesize('./'.$logfile); // Если файл создан после предыдущего чтения данных функцией filesize, возникает ошибка.
 
 	log_event("rolling back $logfile : $logfile_init_size -> $newsize");
@@ -71,7 +71,7 @@ function rollback_logger() {
 /**
  * Записать сообщение в файл и на экран (html вывод). Имя файла определяется глобальной переменной $logfile или передаётся аргументом
  * @param  string $message текст сообщения.
- * @param  string $level   "уровень тревожности" сообщения. Если $level и $message - оба пустые, 
+ * @param  string $level   "уровень тревожности" сообщения. Если $level и $message - оба пустые,
  * то будет выведена в файл пустая строка для декорации. Если $level == "DEBUG", то вывод на экран будет пропущен.
  * @param  string $file    имя файла. Если null, то используется глобальная переменная $logfile
  */
@@ -83,7 +83,7 @@ function log_event($message, $level="INFO", $file=null) {
 
 	$logName = $file;
 	if ($logName == null) $logName = $logfile;
-	if ($logName == null) 
+	if ($logName == null)
 		return; // без логирования, если файл лога не задан.
 
 	$filename = __DIR__.DIRECTORY_SEPARATOR.$logName;

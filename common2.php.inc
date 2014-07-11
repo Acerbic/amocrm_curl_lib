@@ -6,7 +6,7 @@
  *  require_once "logger.php.inc";
  */
 
-$cookieName = null; // имя файла cookie для данного процесса. 
+$cookieName = null; // имя файла cookie для данного процесса.
 /**
  * Проверяет код HTTP на ошибку. Прерывает выполнение в случае ошибки.
  * @param $code - код ошибки для проверки.
@@ -58,7 +58,7 @@ function amo_curl_authorize($user_data=null, $subdomain=AMOCRM_SUBDOMAIN) {
 	curl_setopt($curl,CURLOPT_COOKIEJAR, $cookieName); #PHP>5.3.6 dirname(__FILE__) -> __DIR__
 	curl_setopt($curl,CURLOPT_SSL_VERIFYPEER,0);
 	curl_setopt($curl,CURLOPT_SSL_VERIFYHOST,0);
- 
+
 	$out=curl_exec($curl); #Инициируем запрос к API и сохраняем ответ в переменную
 	$code=curl_getinfo($curl,CURLINFO_HTTP_CODE);
 	curl_close($curl);
@@ -79,7 +79,7 @@ function amo_curl_authorize($user_data=null, $subdomain=AMOCRM_SUBDOMAIN) {
 }
 
 /**
- * Выполняет запрос POST по REST API через CURL и возвращает массив полученных данных. 
+ * Выполняет запрос POST по REST API через CURL и возвращает массив полученных данных.
  * @param  string $url - (!) относительный адрес для запроса
  * @param  array $postData - данные для отправки POST
  * @param  string $subdomain - субдомен (аккаунт amoCRM)
@@ -107,7 +107,7 @@ function amo_curl_post($url, $postData, $subdomain=AMOCRM_SUBDOMAIN) {
 	curl_setopt($curl,CURLOPT_COOKIEJAR, $cookieName); #PHP>5.3.6 dirname(__FILE__) -> __DIR__
 	curl_setopt($curl,CURLOPT_SSL_VERIFYPEER,0);
 	curl_setopt($curl,CURLOPT_SSL_VERIFYHOST,0);
- 
+
 	$out=curl_exec($curl); #Инициируем запрос к API и сохраняем ответ в переменную
 	$code=curl_getinfo($curl,CURLINFO_HTTP_CODE);
 	curl_close($curl);
@@ -136,7 +136,7 @@ function amo_curl_get($url, $args=null, $modifiedSince=null, $subdomain=AMOCRM_S
 	global $cookieName, $server_time;
 	if (empty($cookieName)) {
 		$cookieName = tempnam (__DIR__, "ckie_");
-		register_shutdown_function(cookie_crusher);
+		register_shutdown_function('cookie_crusher');
 	}
 
 	$curl=curl_init(); #Сохраняем дескриптор сеанса cURL
@@ -151,11 +151,11 @@ function amo_curl_get($url, $args=null, $modifiedSince=null, $subdomain=AMOCRM_S
 		$sDate = $dateTime->format("D, d M Y H:i:s");
 		curl_setopt($curl, CURLOPT_HTTPHEADER, array("if-modified-since: $sDate"));
 	}
-	curl_setopt($curl,CURLOPT_COOKIEFILE, $cookieName); 
-	curl_setopt($curl,CURLOPT_COOKIEJAR, $cookieName); 
+	curl_setopt($curl,CURLOPT_COOKIEFILE, $cookieName);
+	curl_setopt($curl,CURLOPT_COOKIEJAR, $cookieName);
 	curl_setopt($curl,CURLOPT_SSL_VERIFYPEER,0);
 	curl_setopt($curl,CURLOPT_SSL_VERIFYHOST,0);
- 
+
 
 	$retry_counter = 3; $completion_flag = false;
 	if (is_null($args)) $args = array();
@@ -179,7 +179,7 @@ function amo_curl_get($url, $args=null, $modifiedSince=null, $subdomain=AMOCRM_S
 			$completion_flag = false; // .. надежда не оправдалась
 			$retry_counter--;
 			sleep(1);
-			continue; //while ($retry_counter && !$completion_flag) 
+			continue; //while ($retry_counter && !$completion_flag)
 		}
 
 		$response=json_decode($out,true);
@@ -200,7 +200,7 @@ function amo_curl_get($url, $args=null, $modifiedSince=null, $subdomain=AMOCRM_S
  * Массовое получение данных.
  * @param  string $url 		- (!) относительный адрес для запроса.
  * @param  string $dataType - имя запрашиваемых данных ('leads', 'contacts'...) для использования многостраничного запроса (limit_rows и limit_offset).
- * @param  array $args 		- данные для отправки GET. Если указан аргумент 'limit_rows', то он обрабатывается без ограничения в 500 элементов,  описаного в API. 
+ * @param  array $args 		- данные для отправки GET. Если указан аргумент 'limit_rows', то он обрабатывается без ограничения в 500 элементов,  описаного в API.
  * @param  int $modifiedSince - ограничение по дате (по времени amoCRM)
  * @param  func $processor  - callback для обработки единичного элемента, если указан - то в конечный результат включается результат обработки, а не исходный элемент
  * @param  string $subdomain - иной аккаунт, чем указаный в конфиге
@@ -246,7 +246,7 @@ function amo_curl_get_mass($url, $dataType, $args=null, $modifiedSince=null, $pr
 }
 
 function amo_curl_post_mass() {
-	
+
 }
 
 function cookie_crusher() {
