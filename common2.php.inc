@@ -39,7 +39,7 @@ function amo_curl_authorize($user_data=null, $subdomain=AMOCRM_SUBDOMAIN) {
 
 	if (empty($cookieName)) {
 		$cookieName = tempnam (__DIR__, "ckie_");
-		register_shutdown_function(cookie_crusher);
+		register_shutdown_function('cookie_crusher');
 	}
 
 	if (is_null($user_data))
