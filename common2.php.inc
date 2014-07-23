@@ -212,8 +212,8 @@ function amo_curl_get_mass($url, $dataType, $args=null, $modifiedSince=null, $pr
 	global $server_time;
 
 	$args = is_null($args)? array() : $args;
-	$nItemsToGet = $args['limit_rows'];
-	$limitRows = $nItemsToGet && $nItemsToGet>0;
+	$nItemsToGet = is_null($args['limit_rows'])? 500 : $args['limit_rows'];
+  $limitRows = $nItemsToGet && $nItemsToGet>0;
 	$originalOffset = isset($args['limit_offset'])? $args['limit_offset']: 0;
 
 	$resultData = array();
