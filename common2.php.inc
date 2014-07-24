@@ -3,7 +3,6 @@
  * @file
  * Библиотека обёрток для работы с amoCRM API
  *  require_once "config.php.inc";
- *  require_once "logger.php.inc";
  */
 
 $cookieName = null; // имя файла cookie для данного процесса.
@@ -248,33 +247,38 @@ function amo_curl_get_mass($url, $dataType, $args=null, $modifiedSince=null, $pr
  * @param  string $subdomain - субдомен (аккаунт amoCRM)
  * @return массив присланный в ответ на запрос или null, если нет данных. В случае ошибки выполнение прерывается.
  */
-function amo_curl_post_mass($url, $postData, $subdomain=AMOCRM_SUBDOMAIN) {	
+function amo_curl_post_mass($url, $postData, $subdomain=AMOCRM_SUBDOMAIN) {
 	if (!isset($postData) || !isset($postData['request'])) {
 		return null;
 	}
 	$count = 0;
 	$response = array();
 	$request = array();
-	
+
 	$datatype = array_keys($postData['request'])[0];
 	$methods = array_keys($postData['request'][$datatype]);
-	foreach($methods as $method) {
+	foreach ($methods as $method) {
 		foreach($postData['request'][$datatype][$method] as $item) {
 			$count++;
 			$request['request'][$datatype][$method][] = $item;
 			if ($count == 500) {
-				$count == 0;
+				$count = 0;
 				$response = array_merge_recursive(amo_curl_post($url, $request), $response);
 				$request = array();
 			}
 		}
 	}
-	if(count($request) > 0) {
+	// остаток (те, что не добрали до 500)
+	if (count($request) > 0) {
 		$response = array_merge_recursive(amo_curl_post($url, $request), $response);
 	}
 	return (count($response) > 0)? $response : null;
 }
 
+/**
+ * Функция вызывается автоматически при завершении скрипта и удаляет
+ * файл с печеньками.
+ */
 function cookie_crusher() {
 	global $cookieName;
 
