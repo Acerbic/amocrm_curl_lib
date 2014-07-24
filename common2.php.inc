@@ -90,7 +90,7 @@ function amo_curl_post($url, $postData, $subdomain=AMOCRM_SUBDOMAIN) {
 
 	if (empty($cookieName)) {
 		$cookieName = tempnam (__DIR__, "ckie_");
-		register_shutdown_function(cookie_crusher);
+		register_shutdown_function('cookie_crusher');
 	}
 
 	$link='https://'.$subdomain.'.amocrm.ru'.$url;
@@ -212,7 +212,7 @@ function amo_curl_get_mass($url, $dataType, $args=null, $modifiedSince=null, $pr
 	global $server_time;
 
 	$args = is_null($args)? array() : $args;
-	$nItemsToGet = is_null($args['limit_rows'])? 500 : $args['limit_rows'];
+	$nItemsToGet = isset($args['limit_rows'])? $args['limit_rows'] : 0;
 	$limitRows = $nItemsToGet && $nItemsToGet>0;
 	$originalOffset = isset($args['limit_offset'])? $args['limit_offset']: 0;
 
@@ -245,8 +245,35 @@ function amo_curl_get_mass($url, $dataType, $args=null, $modifiedSince=null, $pr
 	return array('data' => $resultData, 'count' => $actualCounter, 'server_time' => $batch['server_time']);
 }
 
-function amo_curl_post_mass() {
-
+/**
+ * массовый вариант amo_curl_post().
+ * @param  string $url - (!) относительный адрес для запроса
+ * @param  array $postData - данные для отправки POST
+ * @param  string $subdomain - субдомен (аккаунт amoCRM)
+ * @return массив присланный в ответ на запрос или null, если нет данных. В случае ошибки выполнение прерывается.
+ */
+function amo_curl_post_mass($url, $postData, $subdomain=AMOCRM_SUBDOMAIN) {	
+	if (!isset($postData) || !isset($postData['request'])) {
+		return null;
+	}
+	$count = 0;
+	$response = array();
+	$request = array();
+	
+	$datatype = array_keys($postData['request'])[0];
+	$methods = array_keys($postData['request'][$datatype]);
+	foreach($methods as $method) {
+		foreach($postData['request'][$datatype][$method] as $item) {
+			$count++;
+			$request['request'][$datatype][$method][] = $item;
+			if ($count == 500) {
+				$count == 0;
+				$response = array_merge_recursive(amo_curl_post($url, $request), $response);
+				$request = array();
+			}
+		}
+	}
+	return (count($response) > 0)? $response : null;
 }
 
 function cookie_crusher() {
