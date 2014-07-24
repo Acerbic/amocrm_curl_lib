@@ -68,8 +68,7 @@ function amo_curl_authorize($user_data=null, $subdomain=AMOCRM_SUBDOMAIN) {
 	}
 	catch(Exception $E)	{
 		$err_mess = 'Ошибка: '.$E->getMessage().PHP_EOL.'Код ошибки: '.$E->getCode();
-		log_event($err_mess, "ERROR");
-		die($err_mess);
+		throw new Exception($err_mess, $E->getCode());
 	}
 
 	$response=json_decode($out,true);
@@ -116,8 +115,7 @@ function amo_curl_post($url, $postData, $subdomain=AMOCRM_SUBDOMAIN) {
 	}
 	catch(Exception $E)	{
 		$err_mess = 'amo_curl_post ошибка: '.$E->getMessage().PHP_EOL.'Код ошибки: '.$E->getCode();
-		log_event($err_mess, "ERROR");
-		throw $err_mess;
+		throw new Exception($err_mess, $E->getCode());
 	}
 
 	$Response=json_decode($out,true);
@@ -175,7 +173,6 @@ function amo_curl_get($url, $args=null, $modifiedSince=null, $subdomain=AMOCRM_S
 		}
 		catch(Exception $E)	{
 			$err_mess = 'Ошибка: '.$E->getMessage().PHP_EOL.'Код ошибки: '.$E->getCode();
-			log_event($err_mess.".... retrying.", "DEBUG");
 			$completion_flag = false; // .. надежда не оправдалась
 			$retry_counter--;
 			sleep(1);
@@ -190,8 +187,7 @@ function amo_curl_get($url, $args=null, $modifiedSince=null, $subdomain=AMOCRM_S
 
 	curl_close($curl);
 	if (!$completion_flag) {
-		throw "Unrecoverable error during amo_curl_get";
-		// die(); // закончить выполнение, т.к. в cURL произошла неисправимая ошибка
+		throw new Exception("Unrecoverable error during amo_curl_get");
 	}
 	return $chunk;
 }
@@ -272,6 +268,9 @@ function amo_curl_post_mass($url, $postData, $subdomain=AMOCRM_SUBDOMAIN) {
 				$request = array();
 			}
 		}
+	}
+	if(count($request) > 0) {
+		$response = array_merge_recursive(amo_curl_post($url, $request), $response);
 	}
 	return (count($response) > 0)? $response : null;
 }
