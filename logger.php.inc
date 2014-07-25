@@ -12,10 +12,12 @@ $filehandles = array(); // все открытые хэндлы логов
 /**
  * Инициализация логгера, проверяет размер файла и обрезает по необходимости.
  * @param  string $logname 	- имя файла для хранения логов
+ * @param  boolean $log_only_file 	- если true - пишет только в файл, без вывода на экран
+ * @param  boolean $debug 	- если false - не пишет в файл записи с уровнем DEBUG
  * @return boolean			- true, если успешно, иначе false.
  */
-function init_logger($logname, $only_file=FALSE) {
-	global $logfile, $log_only_file, $logfile_init_size;
+function init_logger($logname, $only_file=FALSE, $debug=TRUE) {
+	global $logfile, $log_only_file, $logfile_init_size, $log_debug;
 
 	if (empty($logname))
 		return false;
@@ -24,6 +26,7 @@ function init_logger($logname, $only_file=FALSE) {
 
 	$logfile = $logname.'.log';
 	$log_only_file = $only_file;
+	$log_debug = $debug;
 
 	if (file_exists($logfile) && (filesize($logfile) > MAX_LOG_SIZE)) {
 		$tmpfile = tempnam(__DIF__,'_');
@@ -79,7 +82,7 @@ function log_event($message, $level="INFO", $file=null) {
 
 	//открываем нужный файл
 	global $filehandles;
-	global $logfile, $log_only_file;
+	global $logfile, $log_only_file, $log_debug;
 
 	$logName = $file;
 	if ($logName == null) $logName = $logfile;
@@ -91,7 +94,9 @@ function log_event($message, $level="INFO", $file=null) {
 		$handle = $filehandles[$filename];
 	} else {
 		$handle = fopen($filename, "at");
-		chmod($filename, 0666);
+		//FIXME: Если скрипт запущен не от суперпользователя и не от создавшего файл
+		//пользователя - изменять права не дозволено.
+		@chmod($filename, 0666); 
 		$filehandles[$filename] = $handle;
 	}
 
@@ -106,11 +111,18 @@ function log_event($message, $level="INFO", $file=null) {
 		return;
 	}
 
+	//не пишем, если уровень DEBUG и инициализирован с настройкой не писать дебаг
+	if($level == "DEBUG" && !$log_debug) {
+		return false;
+	}
+
 	$dateTime = new DateTime(); // время хоста
 	$sDate = $dateTime->format("[d M Y H:i:s]");
 
 	$line = $sDate." [$level] ".$message."\r\n";
+
 	fwrite($handle, $line);
+
 	if ($level != "DEBUG" && !$log_only_file)
 		echo $line."<br>";
 }
