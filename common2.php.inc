@@ -255,7 +255,8 @@ function amo_curl_post_mass($url, $postData, $subdomain=AMOCRM_SUBDOMAIN) {
 	$response = array();
 	$request = array();
 
-	$datatype = array_keys($postData['request'])[0];
+	$datatype = array_keys($postData['request']);
+	$datatype = $datatype[0];
 	$methods = array_keys($postData['request'][$datatype]);
 	foreach ($methods as $method) {
 		foreach($postData['request'][$datatype][$method] as $item) {
