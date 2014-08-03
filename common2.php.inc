@@ -78,7 +78,7 @@ function amo_curl_authorize($user_data=null, $subdomain=AMOCRM_SUBDOMAIN) {
 
 /**
  * Выполняет запрос POST по REST API через CURL и возвращает массив полученных данных.
- * @param  string $url - (!) относительный адрес для запроса
+ * @param  string $url - относительный адрес для запроса, например "/private/api/v2/json/leads/set"
  * @param  array $postData - данные для отправки POST
  * @param  string $subdomain - субдомен (аккаунт amoCRM)
  * @return массив присланный в ответ на запрос или null, если нет данных. В случае ошибки выполнение прерывается.
