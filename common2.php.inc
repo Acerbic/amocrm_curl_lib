@@ -277,6 +277,60 @@ function amo_curl_post_mass($url, $postData, $subdomain=AMOCRM_SUBDOMAIN) {
 }
 
 /**
+ * Удалить сущность из amoCRM
+ * @param  String $entity_name
+ *   Название сущности. Допустимые значение - 'contact', 'deal'
+ * @param  array $ids
+ *   Набор идентификаторов сущностей для удаления
+ * @param  string $subdomain
+ *   субдомен (аккаунт amoCRM)
+ * @return boolean               TRUE, если не произошло ошибок. NULL иначе.
+ *   Ошибки CURL создают исключение
+ */
+function amo_curl_delete($entity_name, $ids, $subdomain=AMOCRM_SUBDOMAIN) {
+	global $cookieName;
+
+	// TODO уточнить (протестировать!) пути для других сущностей
+	$request_urls = array(
+		'contact' => 'private/api/contact_delete.php',
+		'deal' => 'private/api/deal_delete.php'
+	);
+
+	$url = $request_urls[$entity_name];
+	if (empty($url) || count($ids) == 0) {
+		return NULL;
+	}
+
+	$link = "https://$subdomain.amocrm.ru/$url?ACTION=DELETE&"
+		. http_build_query(array('ID' => $ids));
+	print_r($link);
+
+	$curl=curl_init(); #Сохраняем дескриптор сеанса cURL
+	#Устанавливаем необходимые опции для сеанса cURL
+	curl_setopt($curl,CURLOPT_RETURNTRANSFER,true);
+	curl_setopt($curl,CURLOPT_USERAGENT,'amoCRM-API-client/1.0');
+	curl_setopt($curl,CURLOPT_URL,$link);
+	curl_setopt($curl,CURLOPT_HEADER,false);
+	curl_setopt($curl,CURLOPT_COOKIEFILE,$cookieName);
+	curl_setopt($curl,CURLOPT_COOKIEJAR,$cookieName);
+	curl_setopt($curl,CURLOPT_SSL_VERIFYPEER,0);
+	curl_setopt($curl,CURLOPT_SSL_VERIFYHOST,0);
+	curl_setopt($curl,CURLOPT_CUSTOMREQUEST,'POST');
+	$result = curl_exec($curl); #Инициируем запрос к API и сохраняем ответ в переменную
+	curl_close($curl);
+
+	try {
+		$sxe = new SimpleXMLElement($result);
+		if (isset($sxe->result) && (String)$sxe->result == 'true') {
+			return TRUE;
+		}
+	} catch (Exception $e) {
+		// возвращён не XML документ
+	}
+	return NULL;
+}
+
+/**
  * Функция вызывается автоматически при завершении скрипта и удаляет
  * файл с печеньками.
  */
