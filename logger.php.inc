@@ -8,7 +8,7 @@
  *  1. Вызовите init_logger(), чтобы указать, в какой файл писать, и дополнительные
  *  параметры настройки.
  *  2. log_event() запишет в лог ваше сообщение.
- *  3. log_event с пустыми параметрами - log_event('', '') - запишет в лог пустую строку.
+ *  3. log_event с пустыми параметрами (log_event('', '')), либо без параметров (log_event()) - запишет в лог пустую строку.
  */
 
 define('MAX_LOG_SIZE', 5*1024*1024);
@@ -79,12 +79,12 @@ function rollback_logger() {
 
 /**
  * Записать сообщение в файл и на экран (html вывод). Имя файла определяется глобальной переменной $logfile или передаётся аргументом
- * @param  string $message текст сообщения.
+ * @param  string $message текст сообщения. Если null - пишется пустая строка.
  * @param  string $level   "уровень тревожности" сообщения. Если $level и $message - оба пустые,
  * то будет выведена в файл пустая строка для декорации. Если $level == "DEBUG", то вывод на экран будет пропущен.
  * @param  string $file    имя файла. Если null, то используется глобальная переменная $logfile
  */
-function log_event($message, $level="INFO", $file=null) {
+function log_event($message=null, $level="INFO", $file=null) {
 
 	//открываем нужный файл
 	global $filehandles;
@@ -112,7 +112,7 @@ function log_event($message, $level="INFO", $file=null) {
 	//теперь пишем сообщение.
 
 	//пустая строка в лог-файл
-	if (empty($message) && empty($level)) {
+	if (empty($message)) {
 		fwrite($handle, "\r\n");
 		return;
 	}
