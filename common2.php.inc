@@ -303,7 +303,6 @@ function amo_curl_delete($entity_name, $ids, $subdomain=AMOCRM_SUBDOMAIN) {
 
 	$link = "https://$subdomain.amocrm.ru/$url?ACTION=DELETE&"
 		. http_build_query(array('ID' => $ids));
-	print_r($link);
 
 	$curl=curl_init(); #Сохраняем дескриптор сеанса cURL
 	#Устанавливаем необходимые опции для сеанса cURL
