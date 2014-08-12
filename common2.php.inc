@@ -222,10 +222,12 @@ function amo_curl_get_mass($url, $dataType, $args=null, $modifiedSince=null, $pr
 		if ($batch != null) {
 			foreach ($batch[$dataType] as $element) {
 				$processed_element = is_null($processor)? $element : $processor($element);
-				if (isset($element['id']))
-					$resultData[$element['id']] = $processed_element;
-				else
-					$resultData[] = $processed_element;
+				if(isset($processed_element)) {
+					if (isset($element['id']))
+						$resultData[$element['id']] = $processed_element;
+					else
+						$resultData[] = $processed_element;
+				}
 			}
 			$elementsRecieved = count($batch[$dataType]);
 		} else {
