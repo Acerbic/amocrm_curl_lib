@@ -197,7 +197,8 @@ function amo_curl_get($url, $args=null, $modifiedSince=null, $subdomain=AMOCRM_S
  * @param  string $dataType - имя запрашиваемых данных ('leads', 'contacts'...) для использования многостраничного запроса (limit_rows и limit_offset).
  * @param  array $args 		- данные для отправки GET. Если указан аргумент 'limit_rows', то он обрабатывается без ограничения в 500 элементов,  описаного в API.
  * @param  int $modifiedSince - ограничение по дате (по времени amoCRM)
- * @param  func $processor  - callback для обработки единичного элемента, если указан - то в конечный результат включается результат обработки, а не исходный элемент
+ * @param  string $processor  - имя callback для обработки единичного элемента, если указан - то в конечный результат включается результат обработки, а не исходный элемент.
+ *                            	Возвращайте NULL, если элемент не нужно включать в результаты обработки.
  * @param  string $subdomain - иной аккаунт, чем указаный в конфиге
  * @return array            - {data => {id => {element}...}, 'count' => TOTAL}, если существует $element['id'], иначе
  *                            {data => [{element}], 'count' => TOTAL}
@@ -221,8 +222,8 @@ function amo_curl_get_mass($url, $dataType, $args=null, $modifiedSince=null, $pr
 
 		if ($batch != null) {
 			foreach ($batch[$dataType] as $element) {
-				$processed_element = is_null($processor)? $element : $processor($element);
-				if(isset($processed_element)) {
+				$processed_element = function_exists($processor)? $element : $processor($element);
+				if(!is_null($processed_element)) {
 					if (isset($element['id']))
 						$resultData[$element['id']] = $processed_element;
 					else
