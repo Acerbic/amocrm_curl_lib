@@ -222,7 +222,10 @@ function amo_curl_get_mass($url, $dataType, $args=null, $modifiedSince=null, $pr
 
 		if ($batch != null) {
 			foreach ($batch[$dataType] as $element) {
-				$processed_element = function_exists($processor)? $element : $processor($element);
+				// Обработаем элемент, если требуется
+				$processed_element = (!empty($processor) && function_exists($processor))? $processor($element) : $element;
+
+				// Сохраняем только непустые результаты обработки. Ключ по ID, если есть, или по порядку.
 				if(!is_null($processed_element)) {
 					if (isset($element['id']))
 						$resultData[$element['id']] = $processed_element;
