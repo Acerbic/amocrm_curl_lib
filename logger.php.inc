@@ -35,7 +35,7 @@ function init_logger($logname, $only_file=FALSE, $debug=TRUE) {
 	$log_debug = $debug;
 
 	if (file_exists($logfile) && (filesize($logfile) > MAX_LOG_SIZE)) {
-		$tmpfile = tempnam(__DIF__,'_');
+		$tmpfile = tempnam(__DIR__,'_');
 		$logHandle = fopen($logfile, 'r');
 		$tmpHandle = fopen($tmpfile, 'w');
 		if (!$tmpHandle || !$logHandle)
