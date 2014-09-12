@@ -335,6 +335,78 @@ function amo_curl_delete($entity_name, $ids, $subdomain=AMOCRM_SUBDOMAIN) {
 	return NULL;
 }
 
+/*
+ * name: amo_curl_upload_file - загрузка файла
+ * @param integer $element_id - ID контакта/сделки, к которому прикрепить файл.
+ * @param integer $element_type - тип элемента. 1 - контакт, 2 - сделка
+ * @param string $filename - путь до файла.
+ * @param string $subdomain - субдомен (аккаунт amoCRM)
+ * @return boolean - TRUE, если не произошло ошибок. NULL иначе.
+ *   Ошибки CURL создают исключение
+ */
+
+function amo_curl_upload_file($element_id, $element_type, $filename, $subdomain=AMOCRM_SUBDOMAIN) {
+	global $cookieName;
+
+	$link = "https://".$subdomain.".amocrm.ru/private/notes/edit2.php?ACTION=ADD_NOTE&v=2&ID={$element_id}&ELEMENT_TYPE={$element_type}";
+
+	$curl=curl_init(); #Сохраняем дескриптор сеанса cURL
+	#Устанавливаем необходимые опции для сеанса cURL
+	curl_setopt($curl,CURLOPT_RETURNTRANSFER,true);
+	curl_setopt($curl,CURLOPT_USERAGENT,'amoCRM-API-client/1.0');
+	curl_setopt($curl,CURLOPT_URL,$link);
+	curl_setopt($curl,CURLOPT_HEADER,false);
+	curl_setopt($curl,CURLOPT_COOKIEFILE,$cookieName);
+	curl_setopt($curl,CURLOPT_COOKIEJAR,$cookieName);
+	curl_setopt($curl,CURLOPT_SSL_VERIFYPEER,0);
+	curl_setopt($curl,CURLOPT_SSL_VERIFYHOST,0);
+	curl_setopt($curl,CURLOPT_CUSTOMREQUEST,'POST');
+	curl_setopt($curl,CURLOPT_POST,1);
+	curl_setopt($curl,CURLOPT_POSTFIELDS,array('UserFile' => "@".$filename));
+	$result = curl_exec($curl); #Инициируем запрос к API и сохраняем ответ в переменную
+	curl_close($curl);
+
+	if (strpos($result, '<script type="text/javascript">') >= 0 && strpos($result, 'Notes.add') >= 0) {
+    $file_link = substr($result, strpos($result, 'link: ')+7);
+    $file_link = trim(substr($file_link, 0, strpos($file_link, 'text: ')));
+    $file_link = substr($file_link, 0, strlen($file_link)-2);
+	}
+	else {
+		throw new Exception("Failed to upload file in amo_curl_upload_file");
+	}
+
+	$args = array(
+		'ID' => $element_id,
+		'ACTION' => 'ADD_NOTE',
+		'ATTACH' => $file_link,
+		'BODY' => basename($filename),
+		'ELEMENT_TYPE' => 2
+	);
+
+	$curl=curl_init(); #Сохраняем дескриптор сеанса cURL
+	#Устанавливаем необходимые опции для сеанса cURL
+	curl_setopt($curl,CURLOPT_RETURNTRANSFER,true);
+	curl_setopt($curl,CURLOPT_USERAGENT,'amoCRM-API-client/1.0');
+	curl_setopt($curl,CURLOPT_URL,$link);
+	curl_setopt($curl,CURLOPT_HEADER,false);
+	curl_setopt($curl,CURLOPT_COOKIEFILE,$cookieName);
+	curl_setopt($curl,CURLOPT_COOKIEJAR,$cookieName);
+	curl_setopt($curl,CURLOPT_SSL_VERIFYPEER,0);
+	curl_setopt($curl,CURLOPT_SSL_VERIFYHOST,0);
+	curl_setopt($curl,CURLOPT_CUSTOMREQUEST,'POST');
+	curl_setopt($curl,CURLOPT_POST,1);
+	curl_setopt($curl,CURLOPT_POSTFIELDS,$args);
+	$result = curl_exec($curl); #Инициируем запрос к API и сохраняем ответ в переменную
+	curl_close($curl);
+
+	$result = json_decode($result);
+
+	if ($result->status != 'ok') {
+		throw new Exception("Failed to upload file in amo_curl_upload_file");
+	}
+	return true;
+}
+
 /**
  * Функция вызывается автоматически при завершении скрипта и удаляет
  * файл с печеньками.
