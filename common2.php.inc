@@ -348,10 +348,9 @@ function amo_curl_delete($entity_name, $ids, $subdomain=AMOCRM_SUBDOMAIN) {
 function amo_curl_upload_file($element_id, $element_type, $filename, $subdomain=AMOCRM_SUBDOMAIN) {
 	global $cookieName;
 
+	//Загрузка файла
 	$link = "https://".$subdomain.".amocrm.ru/private/notes/edit2.php?ACTION=ADD_NOTE&v=2&ID={$element_id}&ELEMENT_TYPE={$element_type}";
-
-	$curl=curl_init(); #Сохраняем дескриптор сеанса cURL
-	#Устанавливаем необходимые опции для сеанса cURL
+	$curl=curl_init();
 	curl_setopt($curl,CURLOPT_RETURNTRANSFER,true);
 	curl_setopt($curl,CURLOPT_USERAGENT,'amoCRM-API-client/1.0');
 	curl_setopt($curl,CURLOPT_URL,$link);
@@ -363,18 +362,20 @@ function amo_curl_upload_file($element_id, $element_type, $filename, $subdomain=
 	curl_setopt($curl,CURLOPT_CUSTOMREQUEST,'POST');
 	curl_setopt($curl,CURLOPT_POST,1);
 	curl_setopt($curl,CURLOPT_POSTFIELDS,array('UserFile' => "@".$filename));
-	$result = curl_exec($curl); #Инициируем запрос к API и сохраняем ответ в переменную
+	$result = curl_exec($curl);
 	curl_close($curl);
 
+	//Проверка загрузки, парсинг имени файла на сервере.
 	if (strpos($result, '<script type="text/javascript">') >= 0 && strpos($result, 'Notes.add') >= 0) {
-    $file_link = substr($result, strpos($result, 'link: ')+7);
-    $file_link = trim(substr($file_link, 0, strpos($file_link, 'text: ')));
-    $file_link = substr($file_link, 0, strlen($file_link)-2);
+		$file_link = substr($result, strpos($result, 'link: ')+7);
+		$file_link = trim(substr($file_link, 0, strpos($file_link, 'text: ')));
+		$file_link = substr($file_link, 0, strlen($file_link)-2);
 	}
 	else {
 		throw new Exception("Failed to upload file in amo_curl_upload_file");
 	}
 
+	//Создание заметки типа "файл"
 	$args = array(
 		'ID' => $element_id,
 		'ACTION' => 'ADD_NOTE',
@@ -383,8 +384,7 @@ function amo_curl_upload_file($element_id, $element_type, $filename, $subdomain=
 		'ELEMENT_TYPE' => 2
 	);
 
-	$curl=curl_init(); #Сохраняем дескриптор сеанса cURL
-	#Устанавливаем необходимые опции для сеанса cURL
+	$curl=curl_init();
 	curl_setopt($curl,CURLOPT_RETURNTRANSFER,true);
 	curl_setopt($curl,CURLOPT_USERAGENT,'amoCRM-API-client/1.0');
 	curl_setopt($curl,CURLOPT_URL,$link);
@@ -396,7 +396,7 @@ function amo_curl_upload_file($element_id, $element_type, $filename, $subdomain=
 	curl_setopt($curl,CURLOPT_CUSTOMREQUEST,'POST');
 	curl_setopt($curl,CURLOPT_POST,1);
 	curl_setopt($curl,CURLOPT_POSTFIELDS,$args);
-	$result = curl_exec($curl); #Инициируем запрос к API и сохраняем ответ в переменную
+	$result = curl_exec($curl);
 	curl_close($curl);
 
 	$result = json_decode($result);
