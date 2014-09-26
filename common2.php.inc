@@ -11,7 +11,7 @@ $cookieName = null; // имя файла cookie для данного проце
  * @param $code - код ошибки для проверки.
  * @throws Exception If код индицирует ошибоку
  */
-function CheckCurlResponse($code) {
+function CheckCurlResponse($code, $out = null) {
 	$code=(int)$code;
 	$errors=array(
 		301=>'Moved permanently',
@@ -23,8 +23,15 @@ function CheckCurlResponse($code) {
 		502=>'Bad gateway',
 		503=>'Service unavailable'
 	);
-	if($code!=200 && $code!=204)
+	if (isset($out) && $code == 400) {
+		$out = json_decode($out, true);
+		if (isset($out['response']['error']) && !empty($out['response']['error'])) {
+			throw new Exception($out['response']['error'], $code);
+		}
+	}
+	if($code!=200 && $code!=204) {
 		throw new Exception(isset($errors[$code]) ? $errors[$code] : 'Undescribed error '.$code,$code);
+	}
 }
 
 /**
@@ -63,7 +70,7 @@ function amo_curl_authorize($user_data=null, $subdomain=AMOCRM_SUBDOMAIN) {
 	curl_close($curl);
 
 	try {
-		CheckCurlResponse($code);
+		CheckCurlResponse($code, $out);
 	}
 	catch(Exception $E)	{
 		$err_mess = 'Ошибка: '.$E->getMessage().PHP_EOL.'Код ошибки: '.$E->getCode();
@@ -110,7 +117,7 @@ function amo_curl_post($url, $postData, $subdomain=AMOCRM_SUBDOMAIN) {
 	$code=curl_getinfo($curl,CURLINFO_HTTP_CODE);
 	curl_close($curl);
 	try {
-		CheckCurlResponse($code);
+		CheckCurlResponse($code, $out);
 	}
 	catch(Exception $E)	{
 		$err_mess = 'amo_curl_post ошибка: '.$E->getMessage().PHP_EOL.'Код ошибки: '.$E->getCode();
@@ -168,7 +175,7 @@ function amo_curl_get($url, $args=null, $modifiedSince=null, $subdomain=AMOCRM_S
 		$code=curl_getinfo($curl,CURLINFO_HTTP_CODE);
 
 		try {
-			CheckCurlResponse($code);
+			CheckCurlResponse($code, $out);
 		}
 		catch(Exception $E)	{
 			$err_mess = 'Ошибка: '.$E->getMessage().PHP_EOL.'Код ошибки: '.$E->getCode();
