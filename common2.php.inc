@@ -277,7 +277,7 @@ function amo_curl_post_mass($url, $postData, $subdomain=AMOCRM_SUBDOMAIN) {
 			$request['request'][$datatype][$method][] = $item;
 			if ($count == 500) {
 				$count = 0;
-				$response = array_merge_recursive(amo_curl_post($url, $request), $response);
+				$response = array_merge_recursive(amo_curl_post($url, $request, $subdomain), $response);
 				$request = array();
 			}
 		}
