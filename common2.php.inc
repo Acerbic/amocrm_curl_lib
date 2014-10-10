@@ -284,7 +284,7 @@ function amo_curl_post_mass($url, $postData, $subdomain=AMOCRM_SUBDOMAIN) {
 	}
 	// остаток (те, что не добрали до 500)
 	if (count($request) > 0) {
-		$response = array_merge_recursive(amo_curl_post($url, $request), $response);
+		$response = array_merge_recursive(amo_curl_post($url, $request, $subdomain), $response);
 	}
 	return (count($response) > 0)? $response : null;
 }
