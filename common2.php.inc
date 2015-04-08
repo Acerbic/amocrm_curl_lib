@@ -29,7 +29,7 @@ function CheckCurlResponse($code, $out = null) {
 			throw new Exception($out['response']['error'], $code);
 		}
 	}
-	if($code!=200 && $code!=204) {
+	if ($code!=200 && $code!=204) {
 		throw new Exception(isset($errors[$code]) ? $errors[$code] : 'Undescribed error '.$code,$code);
 	}
 }
@@ -44,13 +44,19 @@ function amo_curl_authorize($user_data=null, $subdomain=AMOCRM_SUBDOMAIN) {
 	global $cookieName;
 
 	if (empty($cookieName)) {
-		$cookieName = tempnam (__DIR__, "ckie_");
+		$cookieName = tempnam(__DIR__, "ckie_");
 		register_shutdown_function('cookie_crusher');
 	}
 
-	if (is_null($user_data))
-		$user_data = array('USER_LOGIN' => AMOCRM_MASTER_LOGIN,
-						   'USER_HASH' => AMOCRM_MASTER_HASH);
+	if (is_null($user_data)) {
+		if (!defined(AMOCRM_MASTER_LOGIN) || !defined(AMOCRM_MASTER_HASH)) {
+			return FALSE;
+		}
+		$user_data = array(
+			'USER_LOGIN' => AMOCRM_MASTER_LOGIN,
+			'USER_HASH' => AMOCRM_MASTER_HASH
+		);
+	}
 	$link='https://'.$subdomain.'.amocrm.ru/private/api/auth.php?type=json';
 	$curl=curl_init(); #Сохраняем дескриптор сеанса cURL
 	#Устанавливаем необходимые опции для сеанса cURL
@@ -58,7 +64,7 @@ function amo_curl_authorize($user_data=null, $subdomain=AMOCRM_SUBDOMAIN) {
 	curl_setopt($curl,CURLOPT_USERAGENT,'amoCRM-API-client/1.0');
 	curl_setopt($curl,CURLOPT_URL,$link);
 	curl_setopt($curl,CURLOPT_POST,true);
-	curl_setopt($curl,CURLOPT_POSTFIELDS,http_build_query($user_data));
+	curl_setopt($curl,CURLOPT_POSTFIELDS, http_build_query($user_data, '', '&'));
 	curl_setopt($curl,CURLOPT_HEADER,false);
 	curl_setopt($curl,CURLOPT_COOKIEFILE, $cookieName); #PHP>5.3.6 dirname(__FILE__) -> __DIR__
 	curl_setopt($curl,CURLOPT_COOKIEJAR, $cookieName); #PHP>5.3.6 dirname(__FILE__) -> __DIR__
@@ -77,7 +83,7 @@ function amo_curl_authorize($user_data=null, $subdomain=AMOCRM_SUBDOMAIN) {
 		throw new Exception($err_mess, $E->getCode());
 	}
 
-	$response=json_decode($out,true);
+	$response = json_decode($out,true);
 
 	#Флаг авторизации доступен в свойстве "auth"
 	return isset($response['response']['auth']);
@@ -94,38 +100,38 @@ function amo_curl_post($url, $postData, $subdomain=AMOCRM_SUBDOMAIN) {
 	global $cookieName;
 
 	if (empty($cookieName)) {
-		$cookieName = tempnam (__DIR__, "ckie_");
+		$cookieName = tempnam(__DIR__, "ckie_");
 		register_shutdown_function('cookie_crusher');
 	}
 
-	$link='https://'.$subdomain.'.amocrm.ru'.$url;
-	$curl=curl_init(); #Сохраняем дескриптор сеанса cURL
+	$link = "https://${subdomain}.amocrm.ru${url}";
+	$curl = curl_init(); #Сохраняем дескриптор сеанса cURL
 	#Устанавливаем необходимые опции для сеанса cURL
-	curl_setopt($curl,CURLOPT_RETURNTRANSFER,true);
-	curl_setopt($curl,CURLOPT_USERAGENT,'amoCRM-API-client/1.0');
-	curl_setopt($curl,CURLOPT_URL,$link);
-	curl_setopt($curl,CURLOPT_CUSTOMREQUEST,'POST');
-	curl_setopt($curl,CURLOPT_POSTFIELDS,json_encode($postData));
-	curl_setopt($curl,CURLOPT_HTTPHEADER,array('Content-Type: application/json'));
-	curl_setopt($curl,CURLOPT_HEADER,false);
-	curl_setopt($curl,CURLOPT_COOKIEFILE, $cookieName); #PHP>5.3.6 dirname(__FILE__) -> __DIR__
-	curl_setopt($curl,CURLOPT_COOKIEJAR, $cookieName); #PHP>5.3.6 dirname(__FILE__) -> __DIR__
-	curl_setopt($curl,CURLOPT_SSL_VERIFYPEER,0);
-	curl_setopt($curl,CURLOPT_SSL_VERIFYHOST,0);
+	curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
+	curl_setopt($curl, CURLOPT_USERAGENT, 'amoCRM-API-client/1.0');
+	curl_setopt($curl, CURLOPT_URL, $link);
+	curl_setopt($curl, CURLOPT_CUSTOMREQUEST, 'POST');
+	curl_setopt($curl, CURLOPT_POSTFIELDS, json_encode($postData));
+	curl_setopt($curl, CURLOPT_HTTPHEADER, array('Content-Type: application/json'));
+	curl_setopt($curl, CURLOPT_HEADER, false);
+	curl_setopt($curl, CURLOPT_COOKIEFILE,  $cookieName); #PHP>5.3.6 dirname(__FILE__) -> __DIR__
+	curl_setopt($curl, CURLOPT_COOKIEJAR,  $cookieName); #PHP>5.3.6 dirname(__FILE__) -> __DIR__
+	curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, 0);
+	curl_setopt($curl, CURLOPT_SSL_VERIFYHOST, 0);
 
-	$out=curl_exec($curl); #Инициируем запрос к API и сохраняем ответ в переменную
-	$code=curl_getinfo($curl,CURLINFO_HTTP_CODE);
+	$out = curl_exec($curl); #Инициируем запрос к API и сохраняем ответ в переменную
+	$code = curl_getinfo($curl, CURLINFO_HTTP_CODE);
 	curl_close($curl);
 	try {
 		CheckCurlResponse($code, $out);
 	}
-	catch(Exception $E)	{
-		$err_mess = 'amo_curl_post ошибка: '.$E->getMessage().PHP_EOL.'Код ошибки: '.$E->getCode();
-		throw new Exception($err_mess, $E->getCode());
+	catch(Exception $e)	{
+		$err_mess = 'amo_curl_post ошибка: '. $e->getMessage() . PHP_EOL . 'Код ошибки: ' . $e->getCode();
+		throw new Exception($err_mess, $e->getCode());
 	}
 
-	$Response=json_decode($out,true);
-	return $Response['response'];
+	$response = json_decode($out, true);
+	return $response['response'];
 }
 
 /**
@@ -151,7 +157,7 @@ function amo_curl_get($url, $args=null, $modifiedSince=null, $subdomain=AMOCRM_S
 	if (!is_null($modifiedSince)) {
 		$dateTime = new DateTime(); // время хоста
 		$dateTime->setTimestamp($modifiedSince); // время по метке
-        $dateTime->setTimezone(new DateTimeZone(AMOCRM_ACCOUNT_TIMEZONE));
+		$dateTime->setTimezone(new DateTimeZone(AMOCRM_ACCOUNT_TIMEZONE));
 		$sDate = $dateTime->format("D, d M Y H:i:s");
 		curl_setopt($curl, CURLOPT_HTTPHEADER, array("if-modified-since: $sDate"));
 	}
@@ -168,7 +174,7 @@ function amo_curl_get($url, $args=null, $modifiedSince=null, $subdomain=AMOCRM_S
 
 		$completion_flag = true; // надежда...
 
-		$link = 'https://'.$subdomain.'.amocrm.ru'.$url.'?'.http_build_query($args);
+		$link = 'https://'.$subdomain.'.amocrm.ru'.$url.'?'.http_build_query($args, '', '&');
 		curl_setopt($curl,CURLOPT_URL,$link);
 
 		$out=curl_exec($curl); #Инициируем запрос к API и сохраняем ответ в переменную
@@ -315,7 +321,7 @@ function amo_curl_delete($entity_name, $ids, $subdomain=AMOCRM_SUBDOMAIN) {
 	}
 
 	$link = "https://$subdomain.amocrm.ru/$url?ACTION=DELETE&"
-		. http_build_query(array('ID' => $ids));
+		. http_build_query(array('ID' => $ids), '', '&');
 
 	$curl=curl_init(); #Сохраняем дескриптор сеанса cURL
 	#Устанавливаем необходимые опции для сеанса cURL
